@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 )
@@ -52,7 +53,7 @@ func (s *Server) getAuthProviderCallback(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	sessionKey := "session:" + user.UserID
+	sessionID := uuid.New().String()
 	expirationDuration := time.Duration(auth.MaxAge) * time.Second
 
 	session := auth.Session{
@@ -66,7 +67,7 @@ func (s *Server) getAuthProviderCallback(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = redisClient.Set(ctx, sessionKey, sessionJsonData, expirationDuration).Err()
+	err = redisClient.Set(ctx, sessionID, sessionJsonData, expirationDuration).Err()
 	if err != nil {
 		fmt.Printf("Error setting session in Redis: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -75,7 +76,7 @@ func (s *Server) getAuthProviderCallback(w http.ResponseWriter, r *http.Request)
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_id",
-		Value:    sessionKey,
+		Value:    sessionID,
 		Path:     "/",
 		MaxAge:   auth.MaxAge,
 		HttpOnly: true,
@@ -83,7 +84,6 @@ func (s *Server) getAuthProviderCallback(w http.ResponseWriter, r *http.Request)
 	})
 
 	http.Redirect(w, r, "http://localhost:5173", http.StatusFound)
-
 }
 
 func (s *Server) beginAuthProviderCallback(w http.ResponseWriter, r *http.Request) {

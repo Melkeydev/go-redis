@@ -12,8 +12,7 @@ import (
 )
 
 type Session struct {
-	UserID  string
-	IsAdmin bool
+	UserID string
 }
 
 const (
